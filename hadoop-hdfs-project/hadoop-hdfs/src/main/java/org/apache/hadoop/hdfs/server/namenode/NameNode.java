@@ -26,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.AccessLog;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.ha.HAServiceProtocol.HAServiceState;
@@ -1831,6 +1832,7 @@ public class NameNode implements NameNodeStatusMXBean {
       try {
         namesystem.startActiveServices();
         startTrashEmptier(conf);
+        startAccessLog(conf);
       } catch (Throwable t) {
         doImmediateShutdown(t);
       }
@@ -1843,6 +1845,7 @@ public class NameNode implements NameNodeStatusMXBean {
           namesystem.stopActiveServices();
         }
         stopTrashEmptier();
+        stopAccessLog();
       } catch (Throwable t) {
         doImmediateShutdown(t);
       }
@@ -1955,5 +1958,17 @@ public class NameNode implements NameNodeStatusMXBean {
       }
       break;
     }
+  }
+  private Thread log;
+  private void startAccessLog(final Configuration conf) throws IOException{
+	  this.log= new Thread( new AccessLog(conf));
+	  this.log.setDaemon(true);
+  }
+  
+  private void stopAccessLog () {
+	  if (this.log != null) {
+		  log.interrupt();
+		  log= null;
+	  }
   }
 }

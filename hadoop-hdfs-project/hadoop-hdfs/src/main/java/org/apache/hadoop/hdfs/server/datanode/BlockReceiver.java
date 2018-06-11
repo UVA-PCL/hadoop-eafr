@@ -69,7 +69,7 @@ import org.slf4j.Logger;
  * may copies it to another site. If a throttler is provided,
  * streaming throttling is also supported.
  **/
-class BlockReceiver implements Closeable {
+public class BlockReceiver implements Closeable {
   public static final Logger LOG = DataNode.LOG;
   static final Log ClientTraceLog = DataNode.ClientTraceLog;
 
@@ -101,9 +101,11 @@ class BlockReceiver implements Closeable {
   private Daemon responder = null;
   private DataTransferThrottler throttler;
   private ReplicaOutputStreams streams;
-  private DatanodeInfo srcDataNode = null;
+  public static DatanodeInfo srcDataNode = null;
   private final DataNode datanode;
   volatile private boolean mirrorError;
+  public static long transtime;
+
 
   // Cache management state
   private boolean dropCacheBehindWrites;
@@ -294,6 +296,11 @@ class BlockReceiver implements Closeable {
       
       throw ioe;
     }
+  }
+
+  public static long getTransTime() {
+	  
+	  return transtime;
   }
 
   /** Return the datanode object. */
@@ -1124,7 +1131,7 @@ class BlockReceiver implements Closeable {
    * Processes responses from downstream datanodes in the pipeline
    * and sends back replies to the originator.
    */
-  class PacketResponder implements Runnable, Closeable {   
+  public class PacketResponder implements Runnable, Closeable {   
     /** queue for packets waiting for ack - synchronization using monitor lock */
     private final LinkedList<Packet> ackQueue = new LinkedList<Packet>(); 
     /** the thread that spawns this responder */
@@ -1391,6 +1398,7 @@ class BlockReceiver implements Closeable {
           if (lastPacketInBlock) {
             // Finalize the block and close the block file
             finalizeBlock(startTime);
+            getTransTime();
           }
 
           Status myStatus = pkt != null ? pkt.ackStatus : Status.SUCCESS;
@@ -1426,7 +1434,7 @@ class BlockReceiver implements Closeable {
      * Finalize the block and close the block file
      * @param startTime time when BlockReceiver started receiving the block
      */
-    private void finalizeBlock(long startTime) throws IOException {
+    public void finalizeBlock(long startTime) throws IOException {
       long endTime = 0;
       // Hold a volume reference to finalize block.
       try (ReplicaHandler handler = BlockReceiver.this.claimReplicaHandler()) {
@@ -1435,6 +1443,7 @@ class BlockReceiver implements Closeable {
         block.setNumBytes(replicaInfo.getNumBytes());
         datanode.data.finalizeBlock(block);
       }
+      transtime=endTime-startTime;
 
       if (pinning) {
         datanode.data.setPinning(block);
@@ -1453,6 +1462,7 @@ class BlockReceiver implements Closeable {
         LOG.info("Received " + block + " size " + block.getNumBytes()
             + " from " + inAddr);
       }
+     
     }
     
     /**
