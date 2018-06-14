@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.AddBlockFlag;
-import org.apache.hadoop.fs.AccessLog;
 import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.hdfs.protocol.BlockStoragePolicy;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -35,6 +34,7 @@ import org.apache.hadoop.net.NetworkTopology;
 import org.apache.hadoop.net.Node;
 import org.apache.hadoop.net.NodeBase;
 import org.apache.hadoop.hdfs.server.datanode.BlockReceiver;
+import org.apache.hadoop.hdfs.server.namenode.AccessLog;
 
 import com.google.common.annotations.VisibleForTesting;
 
