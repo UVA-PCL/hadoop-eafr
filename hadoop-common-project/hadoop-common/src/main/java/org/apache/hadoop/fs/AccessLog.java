@@ -10,12 +10,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.*;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 
 public class AccessLog extends Configured implements Runnable {
+  public static final Log LOG = LogFactory.getLog(AccessLog.class); 
+
   public static int upperBound = 20;
-  public static String NameNodeIp;
+  public static String nameNodeIp;
   public static String logFilePath;
   public static String hdfsFilePath;
   public static int lowerBound = 8;
@@ -24,12 +28,11 @@ public class AccessLog extends Configured implements Runnable {
   public static HashSet<String> coldFiles = new HashSet<String>();
   public static ArrayList<String> fileList = new ArrayList<String>();
 
-  @SuppressWarnings("static-access")
   public AccessLog(Configuration conf) {
     super(conf);
-    this.NameNodeIp = conf.get("fs.default.name");
-    this.logFilePath = "hdfs://" + NameNodeIp + "/logs/hdfs-audit.log";
-    this.hdfsFilePath = "hdfs://" + NameNodeIp + "/";
+    nameNodeIp = conf.get("fs.default.name");
+    logFilePath = "hdfs://" + nameNodeIp + "/logs/hdfs-audit.log";
+    hdfsFilePath = "hdfs://" + nameNodeIp + "/";
   }
 
   public static void increaseReplication(FileSystem dfs, String hdfsFilePath) throws IOException {
@@ -70,41 +73,25 @@ public class AccessLog extends Configured implements Runnable {
 
   @Override
   public void run() {
+    try {
+      runScan();
+    } catch (URISyntaxException | IOException | ParseException e) {
+      LOG.error("Exception while running access log scan", e);
+    }
+  }
+  public void runScan() throws URISyntaxException, IOException, MalformedURLException, ParseException {
 
     Configuration conf = new Configuration();
     FileSystem dfs1 = null;
-    try {
-      dfs1 = FileSystem.get(new URI(hdfsFilePath), conf);
-    } catch (IOException | URISyntaxException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    dfs1 = FileSystem.get(new URI(hdfsFilePath), conf);
 
     URL log = null;
-    try {
-      log = new URL(logFilePath);
-    } catch (MalformedURLException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    log = new URL(logFilePath);
     BufferedReader br = null;
-    try {
-      br = new BufferedReader(new InputStreamReader(log.openStream()));
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    br = new BufferedReader(new InputStreamReader(log.openStream()));
     String line;
     long index = 0;
-    try {
-      fileList = getAllFilePathInHDFS(dfs1, hdfsFilePath.toString());
-    } catch (FileNotFoundException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    fileList = getAllFilePathInHDFS(dfs1, hdfsFilePath.toString());
     // System.out.println("Total number of files stored in HDFS: "+fileList.size());
     ArrayList<Pattern> patterns = getRegexPattern(fileList);
     // System.out.println(patterns+"\n\n");
@@ -126,31 +113,26 @@ public class AccessLog extends Configured implements Runnable {
     }
     // System.out.println(fileCountMap);
     // System.out.println("parsing the log file to get file count..\n\n");
-    try {
-      while ((line = br.readLine()) != null) {
-        index++;
-        Matcher dateTime = datePatterns.matcher(line);
-        int count = 0;
-        for (int j = 0; j < (patterns.size()); j++) {
-          Pattern element = patterns.get(j);
-          Matcher fileLocation = element.matcher(line);
-          while (fileLocation.find() && dateTime.find()) {
+    while ((line = br.readLine()) != null) {
+      index++;
+      Matcher dateTime = datePatterns.matcher(line);
+      int count = 0;
+      for (int j = 0; j < (patterns.size()); j++) {
+        Pattern element = patterns.get(j);
+        Matcher fileLocation = element.matcher(line);
+        while (fileLocation.find() && dateTime.find()) {
 
-            String date = dateTime.group(0);
-            long fileAccessTime = (sdf.parse(date)).getTime();
-            if (fileAccessTime >= thresholdTime) {
-              Date date2 = new Date(fileAccessTime);
-              String elem = new String(element.toString());
-              fileCountMap.put(elem, fileCountMap.get(elem) + 1);
-            }
+          String date = dateTime.group(0);
+          long fileAccessTime = (sdf.parse(date)).getTime();
+          if (fileAccessTime >= thresholdTime) {
+            Date date2 = new Date(fileAccessTime);
+            String elem = new String(element.toString());
+            fileCountMap.put(elem, fileCountMap.get(elem) + 1);
           }
         }
-        // System.out.println(count);
-
       }
-    } catch (IOException | ParseException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      // System.out.println(count);
+
     }
     // System.out.println("List of files with each individual counts within last "+interval+"
     // hours:\n\n");
@@ -182,20 +164,10 @@ public class AccessLog extends Configured implements Runnable {
       if ((fileCount < upperBound) && (fileCount > lowerBound)) {
         @SuppressWarnings("deprecation")
         short getrep = 0;
-        try {
-          getrep = dfs1.getReplication(new Path(elem.substring(4)));
-        } catch (IllegalArgumentException | IOException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-        }
+        getrep = dfs1.getReplication(new Path(elem.substring(4)));
         short defrep = dfs1.getDefaultReplication(new Path(elem.substring(4)));
         if (defrep != getrep) {
-          try {
-            dfs1.setReplication(new Path(elem.substring(4)), defrep);
-          } catch (IllegalArgumentException | IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-          }
+          dfs1.setReplication(new Path(elem.substring(4)), defrep);
         }
       }
     }
