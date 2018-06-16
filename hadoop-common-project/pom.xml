@@ -39,7 +39,13 @@
     <module>hadoop-minikdc</module>
     <module>hadoop-kms</module>
   </modules>
-
+<dependencies>
+  <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-hdfs</artifactId>
+      <type>test-jar</type>
+    </dependency>
+</dependencies>
   <build>
     <plugins>
       <plugin>
@@ -53,6 +59,18 @@
         <artifactId>apache-rat-plugin</artifactId>
         <configuration>
         </configuration>
+      </plugin>
+      <plugin>
+       <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+	 <executions>
+	  <execution>
+	   <goals>
+	    <goal>jar</goal>
+	    <goal>test-jar</goal>
+	   </goals>
+	 </execution>
+	</executions>
       </plugin>
     </plugins>
   </build>

@@ -48,7 +48,7 @@ import com.google.common.annotations.VisibleForTesting;
  * which is on a different node of the rack as the second replica.
  */
 @InterfaceAudience.Private
-public class BlockPlacementPolicyDefault extends BlockPlacementPolicy {
+public class BlockPlacementPolicyEAFR extends BlockPlacementPolicy {
 
   private static final String enableDebugLogging =
       "For more information, please enable DEBUG log level on "
