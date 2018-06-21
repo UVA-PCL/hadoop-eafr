@@ -115,16 +115,7 @@ public class BlockPlacementPolicyEAFR extends BlockPlacementPolicyDefault {
     }
 
     for (DatanodeStorageInfo storage : results) {
-      for (long stop = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-          stop > System.nanoTime(); ) {
-        durations.add(BlockReceiver.getTransTime());
-      }
-      long pastvalue = 0;
-      for (int i = 0; i < durations.size(); i++) {
-        long avg = EWMA(durations.get(i), alpha, pastvalue);
-        pastvalue = avg;
-        ewma.put(avg, storage);
-      }
+      ewma.put(storage.getDatanodeDescriptor().getBlockTransferTime(), storage);
     }
     for (int i = 0; i < results.size(); i++) {
       sum += 1.0 / i;
