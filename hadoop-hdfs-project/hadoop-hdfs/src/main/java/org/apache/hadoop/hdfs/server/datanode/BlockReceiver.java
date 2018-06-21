@@ -73,13 +73,16 @@ public class BlockReceiver implements Closeable {
   public static final Logger LOG = DataNode.LOG;
   static final Log ClientTraceLog = DataNode.ClientTraceLog;
 
+  private static long blockTransferTime;
+  private static boolean haveTransferTime = false;
+
   @VisibleForTesting
   static long CACHE_DROP_LAG_BYTES = 8 * 1024 * 1024;
   private final long datanodeSlowLogThresholdMs;
   private DataInputStream in = null; // from where data are read
   private DataChecksum clientChecksum; // checksum used by client
   private DataChecksum diskChecksum; // checksum we write to disk
-  
+
   /**
    * In the case that the client is writing with a different
    * checksum polynomial than the block is stored with on disk,
@@ -104,7 +107,6 @@ public class BlockReceiver implements Closeable {
   public static DatanodeInfo srcDataNode = null;
   private final DataNode datanode;
   volatile private boolean mirrorError;
-  public static long transtime;
 
 
   // Cache management state
@@ -138,7 +140,7 @@ public class BlockReceiver implements Closeable {
   private long lastResponseTime = 0;
   private boolean isReplaceBlock = false;
   private DataOutputStream replyOut = null;
-  
+
   private boolean pinning;
   private long lastSentTime;
   private long maxSendIdleTime;
@@ -298,9 +300,22 @@ public class BlockReceiver implements Closeable {
     }
   }
 
-  public static long getTransTime() {
-	  
-	  return transtime;
+  public static long getBlockTransferTime() {
+    return blockTransferTime;
+  }
+
+  private static long EWMA(long value, double alpha, long oldvalue) {
+    return (long) (alpha * value + (1 - alpha) * (oldvalue));
+  }
+
+  private static synchronized void accumulateBlockTransferTime(long newTransferTime) {
+    // FIXME: normalize for different block sizes?
+    final double alpha = 0.8;
+    if (haveTransferTime) {
+      blockTransferTime = EWMA(newTransferTime, alpha, blockTransferTime);
+    } else{
+      blockTransferTime = newTransferTime;
+    }
   }
 
   /** Return the datanode object. */
@@ -1398,7 +1413,6 @@ public class BlockReceiver implements Closeable {
           if (lastPacketInBlock) {
             // Finalize the block and close the block file
             finalizeBlock(startTime);
-            getTransTime();
           }
 
           Status myStatus = pkt != null ? pkt.ackStatus : Status.SUCCESS;
@@ -1443,7 +1457,7 @@ public class BlockReceiver implements Closeable {
         block.setNumBytes(replicaInfo.getNumBytes());
         datanode.data.finalizeBlock(block);
       }
-      transtime=endTime-startTime;
+      accumulateBlockTransferTime(endTime-startTime);
 
       if (pinning) {
         datanode.data.setPinning(block);
