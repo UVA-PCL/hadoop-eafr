@@ -108,7 +108,6 @@ public class BlockPlacementPolicyEAFR extends BlockPlacementPolicyDefault {
         new HashMap<DatanodeStorageInfo, Double>();
     NavigableMap<Double, DatanodeStorageInfo> weightedProbability =
         new TreeMap<Double, DatanodeStorageInfo>();
-    long pastvalue = 0;
     double alpha = .8;
 
     for (DatanodeStorageInfo storage : results) {
@@ -120,6 +119,7 @@ public class BlockPlacementPolicyEAFR extends BlockPlacementPolicyDefault {
           stop > System.nanoTime(); ) {
         durations.add(BlockReceiver.getTransTime());
       }
+      long pastvalue = 0;
       for (int i = 0; i < durations.size(); i++) {
         long avg = EWMA(durations.get(i), alpha, pastvalue);
         pastvalue = avg;
