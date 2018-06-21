@@ -222,6 +222,8 @@ public class DatanodeDescriptor extends DatanodeInfo {
   // HB processing can use it to tell if it is the first HB since DN restarted
   private boolean heartbeatedSinceRegistration = false;
 
+  private long blockTransferTime = 0;
+
   /**
    * DatanodeDescriptor constructor
    * @param nodeID id of the data node
@@ -344,6 +346,14 @@ public class DatanodeDescriptor extends DatanodeInfo {
       blocks += entry.numBlocks();
     }
     return blocks;
+  }
+
+  public long getBlockTransferTime() {
+    return this.blockTransferTime;
+  }
+
+  public void setBlockTransferTime(long blockTransferTime) {
+    this.blockTransferTime = blockTransferTime;
   }
 
   /**

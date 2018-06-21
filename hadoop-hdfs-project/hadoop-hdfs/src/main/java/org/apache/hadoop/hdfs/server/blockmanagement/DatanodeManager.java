@@ -1344,7 +1344,8 @@ public class DatanodeManager {
       StorageReport[] reports, final String blockPoolId,
       long cacheCapacity, long cacheUsed, int xceiverCount, 
       int maxTransfers, int failedVolumes,
-      VolumeFailureSummary volumeFailureSummary) throws IOException {
+      VolumeFailureSummary volumeFailureSummary,
+      long blockTransferTime) throws IOException {
     synchronized (heartbeatManager) {
       synchronized (datanodeMap) {
         DatanodeDescriptor nodeinfo;
@@ -1363,6 +1364,8 @@ public class DatanodeManager {
         if (nodeinfo == null || !nodeinfo.isRegistered()) {
           return new DatanodeCommand[]{RegisterCommand.REGISTER};
         }
+
+        nodeinfo.setBlockTransferTime(blockTransferTime);
 
         heartbeatManager.updateHeartbeat(nodeinfo, reports,
                                          cacheCapacity, cacheUsed,
