@@ -104,6 +104,7 @@ public interface DatanodeProtocol {
    * @param volumeFailureSummary info about volume failures
    * @param requestFullBlockReportLease whether to request a full block
    *                                    report lease.
+   * @param blockTransferTime recent block transfer time hint
    * @throws IOException on error
    */
   @Idempotent
@@ -115,7 +116,8 @@ public interface DatanodeProtocol {
                                        int xceiverCount,
                                        int failedVolumes,
                                        VolumeFailureSummary volumeFailureSummary,
-                                       boolean requestFullBlockReportLease)
+                                       boolean requestFullBlockReportLease,
+                                       long blockTransferTime)
       throws IOException;
 
   /**

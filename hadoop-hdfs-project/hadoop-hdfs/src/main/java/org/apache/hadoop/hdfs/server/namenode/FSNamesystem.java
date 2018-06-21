@@ -3678,7 +3678,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
       StorageReport[] reports, long cacheCapacity, long cacheUsed,
       int xceiverCount, int xmitsInProgress, int failedVolumes,
       VolumeFailureSummary volumeFailureSummary,
-      boolean requestFullBlockReportLease) throws IOException {
+      boolean requestFullBlockReportLease, long blockTransferTime) throws IOException {
     readLock();
     try {
       //get datanode commands

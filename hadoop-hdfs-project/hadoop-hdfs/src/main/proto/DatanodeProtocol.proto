@@ -196,6 +196,8 @@ message HeartbeatRequestProto {
   optional uint64 cacheUsed = 7 [default = 0 ];
   optional VolumeFailureSummaryProto volumeFailureSummary = 8;
   optional bool requestFullBlockReportLease = 9 [ default = false ];
+
+  optional uint64 blockTransferTime = 10000 [ default = 0 ];
 }
 
 /**

@@ -461,7 +461,8 @@ class BPServiceActor implements Runnable {
         dn.getXceiverCount(),
         numFailedVolumes,
         volumeFailureSummary,
-        requestBlockReportLease);
+        requestBlockReportLease,
+        BlockReceiver.getTransTime());
   }
 
   @VisibleForTesting
