@@ -89,7 +89,7 @@ public class AccessLog extends Configured implements Runnable {
       } catch (URISyntaxException | IOException | ParseException e) {
         LOG.error("Exception while running access log scan", e);
       }
-      Thread.sleep(interval * 3600 * 1000);
+      Thread.sleep((long) (interval * 3600 * 1000));
     }
   }
   public void runScan() throws URISyntaxException, IOException, MalformedURLException, ParseException {
