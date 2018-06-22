@@ -172,7 +172,7 @@ public class TestFsDatasetCache {
         (DatanodeRegistration) any(),
         (StorageReport[]) any(), anyLong(), anyLong(),
         anyInt(), anyInt(), anyInt(), (VolumeFailureSummary) any(),
-        anyBoolean());
+        anyBoolean(), anyLong());
   }
 
   private static DatanodeCommand[] cacheBlock(HdfsBlockLocation loc) {

@@ -131,7 +131,7 @@ public class TestDeadDatanode {
         new DatanodeStorage(reg.getDatanodeUuid()),
         false, 0, 0, 0, 0, 0) };
     DatanodeCommand[] cmd =
-        dnp.sendHeartbeat(reg, rep, 0L, 0L, 0, 0, 0, null, true).getCommands();
+        dnp.sendHeartbeat(reg, rep, 0L, 0L, 0, 0, 0, null, true, 0L).getCommands();
     assertEquals(1, cmd.length);
     assertEquals(cmd[0].getAction(), RegisterCommand.REGISTER
         .getAction());

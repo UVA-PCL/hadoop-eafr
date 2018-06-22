@@ -167,7 +167,8 @@ public class TestDataNodeLifeline {
             anyInt(),
             anyInt(),
             any(VolumeFailureSummary.class),
-            anyBoolean());
+            anyBoolean(),
+            anyLong());
 
     // Intercept lifeline to trigger latch count-down on each call.
     doAnswer(new LatchCountingAnswer<Void>(lifelinesSent))
@@ -230,7 +231,8 @@ public class TestDataNodeLifeline {
             anyInt(),
             anyInt(),
             any(VolumeFailureSummary.class),
-            anyBoolean());
+            anyBoolean(),
+            anyLong());
 
     // While waiting on the latch for the expected number of heartbeat messages,
     // poll DataNode tracking information.  We expect that the DataNode always
