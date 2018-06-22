@@ -48,12 +48,7 @@ To use the code in this patch, you need to configure Hadoop:
 
 4.  Changes to the heartbeat messages to send the recent EWMA of block transfer times in heartbeat messages.
 
-# Missing Features (need to implement)
-
-*  Periodic rescanning of access log?
-*  Unit tests
-
-# Missing Features (optional?)
+# Missing Features
 
 *  Missing EAFR-type selection for removing replicas
 *  Block receiver compenstation for block sizes.
