@@ -50,6 +50,7 @@ To use the code in this patch, you need to configure Hadoop:
 
 # Missing Features
 
+*  Unit tests
 *  Missing EAFR-type selection for removing replicas
 *  Block receiver compenstation for block sizes.
 *  Alpha for EWMA configurable?
