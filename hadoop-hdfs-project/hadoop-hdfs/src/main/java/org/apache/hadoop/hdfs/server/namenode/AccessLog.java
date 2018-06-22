@@ -36,8 +36,12 @@ public class AccessLog extends Configured implements Runnable {
 
   public AccessLog(Configuration conf) {
     super(conf);
-    nameNodeIp = conf.get("fs.default.name");
-    logFilePath = "hdfs://" + nameNodeIp + "/logs/hdfs-audit.log";
+    try {
+        nameNodeIp = new URI(conf.get("fs.default.name")).getHost();
+    } catch (URISyntaxException uri) {
+        nameNodeIp = "localhost";
+    }
+    logFilePath = conf.get("eafr.access-log", "hdfs://" + nameNodeIp + "/logs/hdfs-audit.log");
     hdfsFilePath = "hdfs://" + nameNodeIp + "/";
   }
 
