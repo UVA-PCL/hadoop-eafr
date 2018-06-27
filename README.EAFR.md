@@ -46,12 +46,21 @@ To use the code in this patch, you need to configure Hadoop:
 3.  Changes to org.apache.hadoop.hdfs.server.datanode.BlockReceiver to track exponentially
     weighted moving average of the block transfer times. This is used by BlockPlacementPolicyEAFR
 
-4.  Changes to the heartbeat messages to send the recent EWMA of block transfer times in heartbeat messages.
+4.  Changes to the heartbeat messages to send the recent exponential weighted moving average of block transfer times in
+    heartbeat messages. Block transfer times are tracked in the DataNode class to be fed in the heartbeat messages.
 
-# Missing Features
+5.  A single test of the EAFR placement policy is added (org.apache.hadoop.hdfs.server.namenode.TestBlockPlacementPolicyEAFR.
 
-*  Unit tests
-*  Missing EAFR-type selection for removing replicas
-*  Block receiver compenstation for block sizes.
-*  Alpha for EWMA configurable?
-*  Configurable interval for checking the access log
+# Missing features/quirks
+
+*  Block transfer times are not normalized by the block size.
+
+*  The exponentially weighted moving average is updated at each transfer, rather than based on averages in a time window.
+
+*  Several parameters are fixed:
+
+    *  The relative importance of the capacity and replication delay in ranking replication targets.
+
+    *  The alpha used for the exponentially weighted moving average.
+
+    *  The frequency at which accesses are checked to identify hot/cold files and adjust replication frequencies.
