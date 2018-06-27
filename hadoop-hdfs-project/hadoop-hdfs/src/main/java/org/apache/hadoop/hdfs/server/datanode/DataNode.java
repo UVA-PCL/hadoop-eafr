@@ -378,6 +378,21 @@ public class DataNode extends ReconfigurableBase
   private boolean isPermissionEnabled;
   private String dnUserName = null;
   private BlockRecoveryWorker blockRecoveryWorker;
+
+  private long blockTransferTime;
+  private boolean haveTransferTime = false;
+  private boolean overrideTransferTime = false;
+  private Object blockTransferTimeLock = new Object();
+
+  @VisibleForTesting
+  public void overrideBlockTransferTime(long time) {
+    synchronized (blockTransferTimeLock) {
+      haveTransferTime = true;
+      overrideTransferTime = true;
+      blockTransferTime = time;
+    }
+  }
+
   final Tracer tracer;
   private final TracerConfigurationManager tracerConfigurationManager;
   private static final int NUM_CORES = Runtime.getRuntime()
@@ -3295,6 +3310,29 @@ public class DataNode extends ReconfigurableBase
     if (metricsLoggerTimer != null) {
       metricsLoggerTimer.shutdown();
       metricsLoggerTimer = null;
+    }
+  }
+
+  public long getBlockTransferTime() {
+    synchronized (blockTransferTimeLock) {
+      return blockTransferTime;
+    }
+  }
+
+  private static long EWMA(long value, double alpha, long oldvalue) {
+    return (long) (alpha * value + (1 - alpha) * (oldvalue));
+  }
+
+  public void accumulateBlockTransferTime(long newTransferTime) {
+    synchronized (blockTransferTimeLock) {
+      // FIXME: normalize for different block sizes?
+      final double alpha = 0.8;
+      if (overrideTransferTime) { return; }
+      if (haveTransferTime) {
+        blockTransferTime = EWMA(newTransferTime, alpha, blockTransferTime);
+      } else{
+        blockTransferTime = newTransferTime;
+      }
     }
   }
 

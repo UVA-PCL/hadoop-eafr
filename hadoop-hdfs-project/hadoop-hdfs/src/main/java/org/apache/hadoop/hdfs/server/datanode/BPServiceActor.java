@@ -462,7 +462,7 @@ class BPServiceActor implements Runnable {
         numFailedVolumes,
         volumeFailureSummary,
         requestBlockReportLease,
-        BlockReceiver.getBlockTransferTime());
+        dn.getBlockTransferTime());
   }
 
   @VisibleForTesting

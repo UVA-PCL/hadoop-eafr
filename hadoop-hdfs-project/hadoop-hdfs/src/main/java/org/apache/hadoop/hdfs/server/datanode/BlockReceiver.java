@@ -73,9 +73,6 @@ public class BlockReceiver implements Closeable {
   public static final Logger LOG = DataNode.LOG;
   static final Log ClientTraceLog = DataNode.ClientTraceLog;
 
-  private static long blockTransferTime;
-  private static boolean haveTransferTime = false;
-
   @VisibleForTesting
   static long CACHE_DROP_LAG_BYTES = 8 * 1024 * 1024;
   private final long datanodeSlowLogThresholdMs;
@@ -297,24 +294,6 @@ public class BlockReceiver implements Closeable {
       }
       
       throw ioe;
-    }
-  }
-
-  public static long getBlockTransferTime() {
-    return blockTransferTime;
-  }
-
-  private static long EWMA(long value, double alpha, long oldvalue) {
-    return (long) (alpha * value + (1 - alpha) * (oldvalue));
-  }
-
-  private static synchronized void accumulateBlockTransferTime(long newTransferTime) {
-    // FIXME: normalize for different block sizes?
-    final double alpha = 0.8;
-    if (haveTransferTime) {
-      blockTransferTime = EWMA(newTransferTime, alpha, blockTransferTime);
-    } else{
-      blockTransferTime = newTransferTime;
     }
   }
 
@@ -1457,7 +1436,7 @@ public class BlockReceiver implements Closeable {
         block.setNumBytes(replicaInfo.getNumBytes());
         datanode.data.finalizeBlock(block);
       }
-      accumulateBlockTransferTime(endTime-startTime);
+      getDataNode().accumulateBlockTransferTime(endTime-startTime);
 
       if (pinning) {
         datanode.data.setPinning(block);
