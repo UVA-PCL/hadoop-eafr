@@ -232,7 +232,7 @@ public class BlockPlacementPolicyEAFR extends BlockPlacementPolicyDefault {
       }
     }
     while (numOfReplicas > 0) {
-      LOG.warn("candidates are " + allNodes + " and excluded is " + excludedNodes);
+      LOG.debug("candidates are " + allNodes + " and excluded is " + excludedNodes);
       DatanodeDescriptor chosenNode = chooseTargetWithEAFRPolicy(allNodesAsDNs, storageTypes);
       if (chosenNode == null) {
         break;
