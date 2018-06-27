@@ -77,54 +77,99 @@ public class BlockPlacementPolicyEAFR extends BlockPlacementPolicyDefault {
     boolean isHotFile=AccessLog.isHotFile(srcPath);
     boolean isColdFile=AccessLog.isColdFile(srcPath);
     if (!isHotFile) {
-        return fallbackPolicy.chooseTarget(
-            srcPath, numOfReplicas, writer, chosenNodes, returnChosenNodes, excludedNodes,
-            blocksize, storagePolicy, flags);
+      LOG.warn("chooseTarget --- not a hot file, using fallback");
+      return fallbackPolicy.chooseTarget(
+          srcPath, numOfReplicas, writer, chosenNodes, returnChosenNodes, excludedNodes,
+          blocksize, storagePolicy, flags);
     }
     return super.chooseTarget(srcPath, numOfReplicas, writer, chosenNodes, returnChosenNodes,
         excludedNodes, blocksize, storagePolicy, flags);
   }
 
+  private long getRemainingForTypes(DatanodeDescriptor dn, Set<StorageType> storageTypes) {
+    long currentRemaining = 0L;
+    for (DatanodeStorageInfo storage : dn.getStorageInfos()) {
+      if (storageTypes.contains(storage.getStorageType())) {
+        currentRemaining += storage.getRemaining();
+      }
+    }
+    return currentRemaining;
+  }
 
-  protected DatanodeDescriptor chooseTargetWithHighestStorage(
-      int numOfReplicas,
-      final Set<Node> excludedNodes,
-      final long blocksize,
-      final int maxNodesPerRack,
-      final List<DatanodeStorageInfo> results,
-      final boolean avoidStaleNodes,
-      EnumMap<StorageType, Integer> storageTypes) {
-    long sum = 0;
-    TreeMap<Long, DatanodeStorageInfo> capacity = new TreeMap<Long, DatanodeStorageInfo>();
-    NavigableMap<Double, DatanodeStorageInfo> preferCapacity =
-        new TreeMap<Double, DatanodeStorageInfo>();
-    ArrayList<Long> durations = new ArrayList<Long>();
-    TreeMap<Long, DatanodeStorageInfo> ewma = new TreeMap<Long, DatanodeStorageInfo>();
-    NavigableMap<Double, DatanodeStorageInfo> preferDelay =
-        new TreeMap<Double, DatanodeStorageInfo>();
-    HashMap<DatanodeStorageInfo, Double> revPreferCapacity =
-        new HashMap<DatanodeStorageInfo, Double>();
-    HashMap<DatanodeStorageInfo, Double> revPreferDelay =
-        new HashMap<DatanodeStorageInfo, Double>();
-    NavigableMap<Double, DatanodeStorageInfo> weightedProbability =
-        new TreeMap<Double, DatanodeStorageInfo>();
+
+  protected DatanodeDescriptor chooseTargetWithEAFRPolicy(
+      final List<DatanodeDescriptor> allNodes,
+      final EnumMap<StorageType, Integer> storageTypes) {
+    NavigableMap<Double, DatanodeDescriptor> preferCapacity =
+        new TreeMap<Double, DatanodeDescriptor>();
+    TreeMap<Long, DatanodeDescriptor> ewma = new TreeMap<Long, DatanodeDescriptor>();
+    NavigableMap<Double, DatanodeDescriptor> preferDelay =
+        new TreeMap<Double, DatanodeDescriptor>();
+    HashMap<DatanodeDescriptor, Double> revPreferCapacity =
+        new HashMap<DatanodeDescriptor, Double>();
+    HashMap<DatanodeDescriptor, Double> revPreferDelay =
+        new HashMap<DatanodeDescriptor, Double>();
+    NavigableMap<Double, DatanodeDescriptor> weightedProbability =
+        new TreeMap<Double, DatanodeDescriptor>();
     double alpha = .8;
 
-    for (DatanodeStorageInfo storage : results) {
-      capacity.put(storage.getCapacity(), storage);
+    if (allNodes.size() == 0) {
+      return null;
     }
 
-    for (DatanodeStorageInfo storage : results) {
-      ewma.put(storage.getDatanodeDescriptor().getBlockTransferTime(), storage);
+    LOG.debug("candidate nodes are " + allNodes);
+
+    List<DatanodeDescriptor> nodesByCapacity = new ArrayList<DatanodeDescriptor>(allNodes);
+    nodesByCapacity.sort(new Comparator<DatanodeDescriptor>() {
+      @Override
+      public int compare(DatanodeDescriptor a, DatanodeDescriptor b) {
+        if (a == b) return 0;
+        long aRemaining = getRemainingForTypes(a, storageTypes.keySet());
+        long bRemaining = getRemainingForTypes(b, storageTypes.keySet());
+        if (aRemaining < bRemaining) {
+          return 1;
+        } else if (aRemaining > bRemaining) {
+          return -1;
+        } else {
+          return 0;
+        }
+      }
+    });
+    LOG.debug("after sorting, nodes by capacity are " + nodesByCapacity);
+    List<DatanodeDescriptor> nodesByDelay = new ArrayList<DatanodeDescriptor>(allNodes);
+    nodesByDelay.sort(new Comparator<DatanodeDescriptor>() {
+      @Override
+      public int compare(DatanodeDescriptor a, DatanodeDescriptor b) {
+        if (a == b) return 0;
+        double aTime = a.getBlockTransferTime();
+        double bTime = b.getBlockTransferTime();
+        if (aTime > bTime) {
+          return 1;
+        } else if (aTime < bTime) {
+          return -1;
+        } else {
+          return 0;
+        }
+      }
+    });
+    LOG.debug("after sorting, nodes by delay are " + nodesByDelay);
+    {
+      double sum = 1.0;
+      int index = 1;
+      for (DatanodeDescriptor dn : nodesByCapacity) {
+        double probability = 1.0 / sum;
+        preferCapacity.put(probability, dn);
+        sum += 1.0 / ++index;
+      }
     }
-    for (int i = 0; i < results.size(); i++) {
-      sum += 1.0 / i;
-    }
-    for (Long key : capacity.keySet()) {
-      int j = 1;
-      double probability = (1 / j) / (sum);
-      preferCapacity.put(probability, capacity.get(key));
-      preferDelay.put(probability, capacity.get(key));
+    {
+      double sum = 1.0;
+      int index = 0;
+      for (DatanodeDescriptor dn : nodesByDelay) {
+        double probability = 1.0 / sum;
+        preferDelay.put(probability, dn);
+        sum += 1.0 / ++index; 
+      }
     }
     for (Double key : preferCapacity.keySet()) {
       revPreferCapacity.put(preferCapacity.get(key), key);
@@ -133,20 +178,20 @@ public class BlockPlacementPolicyEAFR extends BlockPlacementPolicyDefault {
       revPreferDelay.put(preferDelay.get(key), key);
     }
 
-    for (DatanodeStorageInfo key : revPreferCapacity.keySet()) {
+    double totalProbability = 0;
+    for (DatanodeDescriptor key : revPreferCapacity.keySet()) {
       if (revPreferDelay.containsKey(key)) {
-        double weightedProb = revPreferCapacity.get(key) + revPreferDelay.get(key);
-        weightedProbability.put(weightedProb, key);
+        /* FIXME: should use beta to determine weighting */
+        double currentProb = revPreferCapacity.get(key) + revPreferDelay.get(key);
+        LOG.warn("probability for " + key.getNetworkLocation() + " -> " + currentProb);
+        totalProbability += currentProb;
+        weightedProbability.put(totalProbability, key);
       }
     }
     Random random = new Random();
-    double totalProbability = 0;
-    for (Double key : weightedProbability.keySet()) {
-      totalProbability += key;
-    }
     double value = random.nextDouble() * totalProbability;
-    DatanodeStorageInfo dns = weightedProbability.higherEntry(value).getValue();
-    DatanodeDescriptor chosenNode = dns.getDatanodeDescriptor();
+    LOG.debug("Choose value " + value + " based on total " + totalProbability);
+    DatanodeDescriptor chosenNode = weightedProbability.higherEntry(value).getValue();
 
     return chosenNode;
   }
@@ -162,6 +207,7 @@ public class BlockPlacementPolicyEAFR extends BlockPlacementPolicyDefault {
 
   protected DatanodeStorageInfo chooseTargetForEAFR(
       int numOfReplicas,
+      String scope,
       Set<Node> excludedNodes,
       long blocksize,
       int maxNodesPerRack,
@@ -177,22 +223,24 @@ public class BlockPlacementPolicyEAFR extends BlockPlacementPolicyDefault {
     }
     boolean badTarget = false;
     DatanodeStorageInfo firstChosen = null;
+    List<Node> allNodes = clusterMap.getLeaves(scope);
+    allNodes.removeAll(excludedNodes);
+    List<DatanodeDescriptor> allNodesAsDNs = new ArrayList<DatanodeDescriptor>();
+    for (Node n : allNodes) {
+      if (n != null) {
+        allNodesAsDNs.add((DatanodeDescriptor) n);
+      }
+    }
     while (numOfReplicas > 0) {
-      DatanodeDescriptor chosenNode =
-          chooseTargetWithHighestStorage(
-              numOfReplicas,
-              excludedNodes,
-              blocksize,
-              maxNodesPerRack,
-              results,
-              avoidStaleNodes,
-              storageTypes);
+      LOG.warn("candidates are " + allNodes + " and excluded is " + excludedNodes);
+      DatanodeDescriptor chosenNode = chooseTargetWithEAFRPolicy(allNodesAsDNs, storageTypes);
       if (chosenNode == null) {
         break;
       }
       Preconditions.checkState(
           excludedNodes.add(chosenNode),
           "chosenNode " + chosenNode + " is already in excludedNodes " + excludedNodes);
+      allNodes.remove(chosenNode);
       if (LOG.isDebugEnabled()) {
         builder.append("\nNode ").append(NodeBase.getPath(chosenNode)).append(" [");
       }
@@ -243,10 +291,6 @@ public class BlockPlacementPolicyEAFR extends BlockPlacementPolicyDefault {
     return firstChosen;
   }
 
-  /**
-   * Randomly choose <i>numOfReplicas</i> targets from the given <i>scope</i>.
-   * @return the first chosen node, if there is any.
-   */
   @Override
   protected DatanodeStorageInfo chooseRandom(int numOfReplicas,
                             String scope,
@@ -257,7 +301,7 @@ public class BlockPlacementPolicyEAFR extends BlockPlacementPolicyDefault {
                             boolean avoidStaleNodes,
                             EnumMap<StorageType, Integer> storageTypes)
                             throws NotEnoughReplicasException {
-    return chooseTargetForEAFR(numOfReplicas, excludedNodes, blocksize, maxNodesPerRack, results, avoidStaleNodes, storageTypes);
+    return chooseTargetForEAFR(numOfReplicas, scope, excludedNodes, blocksize, maxNodesPerRack, results, avoidStaleNodes, storageTypes);
   }
 }
 
