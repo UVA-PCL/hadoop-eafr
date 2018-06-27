@@ -1,12 +1,15 @@
 # EAFR patch README
 
-This is a patch to implement the replication policy as described in Yuhau Lin and Haiyang Shen,
+This is a patch to implement the replication policy as described in Yuhau Lin and Haiying Shen,
 "[EAFR: An Energy-Efficient Adaptive File Replication System in Data-Intensive Clusters](https://ieeexplore.ieee.org/document/7288402/)" in HDFS.
 It also includes code for measuring replication times.
 This should be what's necessary to reproduce the experimental results in the paper except for workload generation, but note that this is not
 the same code code used to produce the results in that paper.
 
-This code in this patch was written by Nurani Soada, with some adjustments by Charles Reiss.
+This code in this patch was written by Nurani Soada, with some adjustments by Professor Charles Reiss, under the guidance of
+Professor Haiying Shen.
+
+This project was supported in part by U.S. NSF grant OAC-1724845.
 
 # Hadoop version information
 
