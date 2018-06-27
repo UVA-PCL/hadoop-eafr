@@ -8,6 +8,13 @@ the same code code used to produce the results in that paper.
 
 This code in this patch was written by Nurani Soada, with some adjustments by Charles Reiss.
 
+# Hadoop version information
+
+This code presently distributed as a copy of the Hadoop 2.8.1 source code with the appropriate changes
+applied. You can also extract the changes and attempt to apply them to later or earlier versions of
+Hadoop via the script `make-eafr-patch.sh`. On our original distribution on github, we include a
+copy of this patch file under the "releases" tab.
+
 # Using this
 
 The modifications are contained the hadoop-hdfs package. In the Hadoop distribution this is contained entirely
