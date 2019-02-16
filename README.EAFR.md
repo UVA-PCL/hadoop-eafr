@@ -11,6 +11,8 @@ Professor Haiying Shen.
 
 This project was supported in part by U.S. NSF grant OAC-1724845.
 
+We thank the collaborators of this project, including Bruce Maggs, Pelham Wilder Professor of Computer Science, Duke University and Vice President, Research, Akamai Technologies; Weijia Xu, Research Engineer, Texas Advanced Computing Center; Open Science Grid (OSG); SURA (Southeastern Universities Research Association) ; and the Naval Research Lab.
+
 # Hadoop version information
 
 This code presently distributed as a copy of the Hadoop 2.8.1 source code with the appropriate changes
